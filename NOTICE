@@ -1,0 +1,14 @@
+legal-screen
+Copyright 2026 Jono Gitty
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes clause names, clause descriptions and two short contract
+passages (in legal_screen/checklist.py and tests/test_core.py) from CUAD,
+the Contract Understanding Atticus Dataset, by The Atticus Project
+(https://www.atticusprojectai.org/cuad), licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). The dataset itself is not
+redistributed; eval/get_cuad.py downloads it.
+
+It talks to, but does not include, Jeff (https://github.com/firelex/jeff)
+by Mathias Strasser (MIT code, Apache 2.0 weights).
