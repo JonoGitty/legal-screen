@@ -13,8 +13,10 @@ and no model-made labels:
 - **CUAD** (The Atticus Project): about 500 commercial contracts, with 41
   clause types marked by lawyers. Tests "is clause X in here, and where?".
 - **ContractNLI** (Stanford): NDAs, each labelled *entailed*, *contradicted*
-  or *not mentioned* for a fixed list of statements. Tests "is it in there,
-  and does anything contradict it?".
+  or *not mentioned* for a fixed list of statements. Tests "does the
+  contract support or contradict this statement?". That is close to, but not
+  the same as, clauses contradicting each other; for that, see the
+  simulated contracts below.
 - Check both licences before any data is copied anywhere.
 
 **Arms**, on the same chunks:
@@ -58,6 +60,32 @@ trained on CUAD, or is the wrong tool.
 - **The cloud step.** Contradictions and interpretation on redacted
   passages, with the results re-identified locally.
 - **An audit log** of what was sent, when, and on whose approval.
+
+## Later: stress-test on many simulated contracts
+
+Use Patchwork Harness and a frontier model to generate large numbers of
+synthetic contracts, with labels known because each is built to order.
+They would cover what CUAD can't:
+- UK drafting
+- clauses phrased as exceptions ("the cap does not apply to…")
+- planted clauses beside near-miss decoys
+- contradictions placed on purpose
+- long and messy documents
+
+Synthetic text can be easier than real drafting, so real labelled contracts
+stay the yardstick. Synthetic sets find blind spots; real sets give the
+number.
+
+## Alongside: a simple app window
+
+The checker runs from a command line, which is no good for most lawyers.
+The plan is deliberately *not* a full web app:
+- one command opens a page served from the lawyer's own computer
+- no framework, no internet, nothing to install beyond Python
+- drop a contract in and get the report, with the redact screen doubling
+  as the outbox preview
+- reports saved as HTML, plus plain Markdown and JSON for anything else to
+  read
 
 ## Phase 4: Pilot with a practising lawyer
 

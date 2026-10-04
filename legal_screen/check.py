@@ -60,8 +60,12 @@ def best_quote(item: Item, chunk: Chunk, limit: int = 400) -> str:
         return chunk.text[:limit]
     with_hit = [s for s in sents if regex_hits(item, s)]
     if with_hit:
-        # a full sentence over a heading ("LIMITATION OF LIABILITY")
-        s = next((x for x in with_hit if len(x) >= 60), with_hit[0])
+        # a full sentence over a heading ("LIMITATION OF LIABILITY"); a heading
+        # alone is quoted with the sentence that follows it
+        s = next((x for x in with_hit if len(x) >= 60), None)
+        if s is None:
+            i = sents.index(with_hit[0])
+            s = with_hit[0] + (f" — {sents[i + 1]}" if i + 1 < len(sents) else "")
     else:
         q = set(tokens(f"{item.name} {item.description}"))
         s = max(sents, key=lambda x: len(q & set(tokens(x))))

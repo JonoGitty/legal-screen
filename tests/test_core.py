@@ -116,6 +116,10 @@ class CheckTest(unittest.TestCase):
         text = "LIMITATION OF LIABILITY\nIn no event shall either party's aggregate liability exceed the fees paid in the prior twelve months."
         q = check_mod.best_quote(item, Chunk(0, 0, len(text), text))
         self.assertTrue(q.startswith("In no event shall"), q)
+        # a heading that is the only match is quoted with the sentence after it
+        text = "LIMITATION OF LIABILITY\ni-on will not be liable under any circumstances for any lost profits."
+        q = check_mod.best_quote(item, Chunk(0, 0, len(text), text))
+        self.assertEqual(q, "LIMITATION OF LIABILITY — i-on will not be liable under any circumstances for any lost profits.")
 
     def test_reads_docx_without_word(self):
         xml = (

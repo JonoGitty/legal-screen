@@ -1,107 +1,92 @@
-# legal-screen (working name)
+# legal-screen
 
-Check legal documents for what's in them, and what contradicts what, on an
-ordinary PC. Nothing leaves the machine unless the lawyer approves exactly
-what is sent.
+**Check a contract for the clauses a lawyer looks for, on an ordinary PC,
+without the document leaving the computer.**
 
-Started in October 2026, after a conversation with a lawyer about two concerns:
-- **Confidentiality:** client documents shouldn't go to a cloud AI by default.
-- **Hardware:** a normal gaming-class PC should be enough. Nobody wants to
-  buy a £15K workstation to run AI locally.
+A small open-source AI model ([Jeff](https://github.com/firelex/jeff))
+answers checklist questions about each passage: is there a limitation of
+liability? governing law? an automatic renewal? For each one you get back
+**found**, **check** or **not found**, with the exact wording and where it
+is. It runs on a normal gaming-class graphics card. Measured on 102 real
+contracts labelled by lawyers, it scored **94.7%** of the clause types
+present at 0.5 or above (the halfway mark; the stricter **found** verdict
+needs 0.91).
 
-## The idea
+> **New here?** Start with the plain-English **[overview](docs/overview.md)**:
+> the idea, what has been measured, and what it can't do yet.
+
+## In one picture
 
 ```
-document ─► chunks (~4K chars) ─► 1. deterministic search ─► 2. Jeff (local) ─► results table
-                                     keywords, regex,            fixed yes/no            question · where ·
-                                     ranked text search          questions + P(yes)      confidence · exact quote
-                                                                        │
-                                                         hard questions only (contradictions,
-                                                         interpretation)
-                                                                        ▼
-                                     3. pseudonymise locally ─► lawyer sees the outbox ─► cloud model (e.g. Claude)
-                                        names → [PARTY_A]…         and clicks send          on redacted text only
-                                        mapping kept locally                                     │
-                                                                        results re-identified locally ◄┘
+your contract ─► split into passages ─► keyword search ─► Jeff, on your PC ─► report
+                                         (where to look)   12 yes/no questions   found · check · not found
+                                                           × every passage       + the exact wording
+                                                                │
+                                   planned: hard questions only ▼
+                     names swapped for ⟦PARTY_A⟧… ─► you read the outbox ─► cloud AI ─► names put back
+                     on your PC                       and click send                    on your PC
 ```
 
-1. **Deterministic search.** Keywords, regex and ranked text search find
-   candidate passages ("indemnif", "governing law", "liabilit"). They are
-   cheap and explainable, and they decide what Jeff checks *first*. They
-   never decide what it *skips*: "is X anywhere?" needs every chunk checked.
-2. **Jeff:** an open-source 0.8B "System One" model
-   ([firelex/jeff](https://github.com/firelex/jeff)). It answers fixed
-   questions with a probability instead of writing prose, and runs locally.
-   - It is checklist-shaped: "Does this passage contain a
-     limitation-of-liability clause?"
-   - Measured on an 8 GB laptop GPU (RTX 3070 Ti): about 140 ms per
-     decision on 1.5K characters, and about 270 ms on 4K.
-   - Not Jev: Jev is TypeSafe's hosted equivalent, so documents would leave
-     the machine.
-3. **Results.** Each question comes back with where it was found, how
-   confident Jeff is, and the exact quote. Unsure answers are shown as
-   unsure. **"Not found" is never presented as "not in the document".**
-   Missing a clause is the costly error, so thresholds are set for recall.
-4. **Escalation (optional).** For what a 0.8B model is weak at, such as
-   contradictions between clauses and interpretation, the passages
-   concerned are pseudonymised locally and shown to the lawyer, and sent
-   only on their click. The answer is mapped back to the real names locally.
+## What has been measured
 
-## Pseudonymising locally (mostly not Jeff)
+On the 102 test contracts of [CUAD](https://www.atticusprojectai.org/cuad)
+(The Atticus Project), with 12 clause types and a laptop with an 8 GB
+graphics card:
 
-Jeff answers questions; it doesn't find and replace names. Finding what to
-redact is a span-finding job:
+| | Clause types present that scored ≥ 0.5 | AUC |
+|---|---|---|
+| Keyword search alone | 82.7% | 0.82 |
+| **Jeff, checking every passage** | **94.7%** | **0.94** |
 
-1. **The contract names its own parties.** The parties and definitions
-   clauses ("ACME Ltd (the "Supplier")") give the names and their variants.
-   Replace every occurrence.
-2. **Pattern rules for things with a shape:**
-   - contact details: emails, phone numbers, postcodes
-   - identifiers: company and registration numbers, bank details, case
-     references
-   - amounts and dates
-3. **A local name-finder for the rest:** people, organisations, places.
-   Off-the-shelf open tools do this on a CPU, e.g. Microsoft Presidio (rules
-   plus spaCy models) or a small zero-shot entity model such as GLiNER.
-   Choose by measuring them (PLAN.md, phase 2).
-4. **A consistent, reversible mapping kept on the PC.** The same entity
-   always gets the same placeholder, so the cloud model's answer still
-   makes sense and can be mapped back.
-5. **Jeff as the checker afterwards.** It asks of each redacted passage:
-   "Does this still identify a person, company or the deal?" Anything
-   flagged goes to the lawyer.
+**The verdicts on held-out contracts** (the cut-offs were set on the other
+half of the contracts):
+Each figure counts contract-and-clause-type pairs: "does this contract have
+a liability cap?".
 
-**The limit:** indirect identifiers. A unique deal fact can identify a
-client with every name removed. That is why sending is always a human
-decision, never automatic.
+- **found** was right 92% of the time
+- **check** turned out to be real about 1 in 5 times
+- **not found** hid 1 real clause in 204
 
-## Use it
+**Strong:** governing law, assignment, caps on liability, renewal,
+insurance and audit rights. **Weak:** uncapped liability, change of control
+and liquidated damages.
 
-Needs Python 3.10+ (standard library only) and a local Jeff server on
-:8765. Jeff's own README covers setup
-([firelex/jeff](https://github.com/firelex/jeff)). On a CUDA machine,
-[Patchwork Harness](https://github.com/JonoGitty/patchwork-harness)'s
-`scripts/jeff/serve.sh` starts it in one command.
+All the figures, and how they were produced: **[RESULTS.md](RESULTS.md)**.
+A real report on a public contract: **[example](docs/example-report.md)**.
+
+## Status
+
+| | |
+|---|---|
+| Clause checking (12 types), local only | **built and measured** |
+| Refusing to send text off the computer | **built and tested** |
+| Pseudonymising: party names, contacts, amounts, dates | **first version.** Catches 86% of party names, so not safe without a person reading it |
+| People's names, contradiction checking, the outbox and cloud step, a simple app window | planned ([PLAN.md](PLAN.md)) |
+| PDF input | not supported yet (save as .docx or .txt) |
+| UK-drafted contracts, Macs | not tested yet |
+
+## Try it
+
+You need a local Jeff server; see **[setup](docs/setup.md)**.
+legal-screen itself needs Python 3.10+ and nothing else.
 
 ```bash
-python3 eval/get_cuad.py                                   # the public test contracts (CUAD, ~18 MB)
-python3 -m legal_screen contract.docx --html report.html   # check it (local only)
-python3 -m legal_screen redact contract.txt                # pseudonymise it; the mapping stays beside it
-python3 -m unittest discover -s tests                      # tests, no Jeff needed
+python3 -m legal_screen contract.docx --html report.html   # check a contract (local only)
+python3 -m legal_screen redact contract.txt                # pseudonymise it; the name mapping stays beside it
+python3 -m unittest discover -s tests                      # 14 tests, no Jeff needed
 ```
 
-## Status (4 Oct 2026)
+## Documentation
 
-- **Phase 1 measured.** On 102 lawyer-labelled public contracts, Jeff on an
-  8 GB laptop GPU found 94.7% of the clauses that were there (AUC 0.94),
-  against 82.7% for keywords.
-- **Bands tested on held-out contracts.** "Found" was right 92% of the time,
-  and "not found" hid 1 real clause in 204.
-- **Weak spots:** uncapped liability, change of control, liquidated damages.
-- **Pseudonymiser v0 (rules)** catches 86% of party names on 408 unseen
-  contracts. It is useful, and not safe without the lawyer reading.
-
-Full numbers: [RESULTS.md](RESULTS.md). Plan: [PLAN.md](PLAN.md).
+| | |
+|---|---|
+| [Overview](docs/overview.md) | The idea in plain English: problem, approach, results, limits, and what a pilot would need |
+| [Example report](docs/example-report.md) | Real output on a public contract, checked against the lawyers' labels |
+| [Privacy](docs/privacy.md) | What stays local, what is enforced in code, and what isn't guaranteed |
+| [How it works](docs/how-it-works.md) | Chunking, search, Jeff, verdict bands, quoting, the pseudonymiser, the evaluation |
+| [Setup](docs/setup.md) | Hardware, installing Jeff, running the checker, reproducing the numbers |
+| [FAQ](docs/faq.md) | Short answers to the obvious questions |
+| [Results](RESULTS.md) · [Plan](PLAN.md) · [Changelog](CHANGELOG.md) | The numbers, the roadmap, the versions |
 
 ## Not legal advice
 
@@ -114,14 +99,13 @@ sent.
 ## Credits
 
 - **[Jeff](https://github.com/firelex/jeff)** by Mathias Strasser: MIT
-  code, Apache 2.0 weights. It is not bundled here; you run your own Jeff
+  code, Apache 2.0 weights. It is not bundled; you run your own Jeff
   server.
 - **[CUAD](https://www.atticusprojectai.org/cuad)**, the Contract
   Understanding Atticus Dataset, by The Atticus Project (Hendrycks, Burns,
   Chen and Ball, NeurIPS 2021), CC BY 4.0. It is downloaded by
-  `eval/get_cuad.py`, not redistributed. The clause names and descriptions
-  in `legal_screen/checklist.py` and two short passages in `tests/` come
-  from it.
+  `eval/get_cuad.py`, not redistributed. The clause names, descriptions
+  and two short test passages come from it.
 
 ## Licence
 

@@ -1,6 +1,15 @@
 # Results
 
-Every number below comes from a real run on this laptop (RTX 3070 Ti Laptop
+> **In plain English.** On 102 real contracts that lawyers had already
+> marked up, a small AI model on a laptop scored the clause 0.5 or above in
+> about 95 of every 100 cases where a contract had that kind of clause. When it said **found** it was right about 9
+> times in 10, and only 1 of 204 real clauses ended up marked **not
+> found**. The price is a "check" pile, about 4 in 10 answers, for a person
+> to glance at. Removing names catches about 6 in 7 party names, which is
+> useful but not safe without a person reading it. The overview tells the
+> story: [docs/overview.md](docs/overview.md).
+
+Every number below comes from a real run on a laptop (RTX 3070 Ti Laptop
 GPU, 8 GB), using Jeff v1.2 (`jeff-qwen3.5-0.8b`, base model, no adapter,
 zero-shot). The data is the CUAD test split: 102 public commercial contracts
 labelled by lawyers (The Atticus Project, CC BY 4.0). No client data was used.
@@ -43,9 +52,11 @@ clause is the costly error. AUC is threshold-free.
 | **Uncapped liability** | 13 | 31% / 0.61 | **69% / 0.68** |
 
 **What the table shows.**
-- **Jeff is strong where the clause has a recognisable shape.** It is weak
-  where the question is about an *absence* or an *exception*: "uncapped"
-  means the cap does not apply to something.
+- **Jeff is strong on clause types with a recognisable shape,** such as
+  governing law and insurance. Why it is weaker on uncapped liability,
+  change of control and liquidated damages isn't known yet. A hypothesis to
+  test for uncapped liability: it is usually written as an exception ("the
+  cap does not apply to…").
 - **Search before Jeff is a real speed lever.** Checking only the top 3
   chunks search picks costs about 5× fewer Jeff checks, for −4 points of
   recall.
